@@ -3,7 +3,7 @@
 **日本のテレビ番組風 UI を React で** — 会場の前に映す画面のための部品集です。
 プロジェクター投影・ロビーの掲示・ライブクイズや投票・式典・カウントダウンに。
 
-[English](./README.md)
+**[▶ オンラインのデモ](https://tyoukyou23.github.io/telop-ui/)** · [English](./README.md)
 
 - **テロップと名前スーパー**: 斜めの箱、登壇者の名前カード、見出しの箱
 - **数字の演出**: カウントアップ、スロットのように回って止まる数字、パタパタ（発車標）、カウントダウン
@@ -96,6 +96,10 @@ if (!data) return <StatusScreen message={error} onRetry={refresh} />;
 組み込みの文言は `ja`（既定）・`en`・`zh`。`messages` でどれでも上書きできます。
 
 ## デモ
+
+**オンライン: https://tyoukyou23.github.io/telop-ui/** — 場面を開いて **F** で全画面。
+
+手元で動かす場合:
 
 ```sh
 git clone https://github.com/tyoukyou23/telop-ui && cd telop-ui

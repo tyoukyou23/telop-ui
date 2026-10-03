@@ -3,7 +3,7 @@
 **Japanese TV-broadcast style UI for React** — for the screen at the front of the room.
 Projectors, lobby signage, live quizzes and votes, ceremonies, countdowns.
 
-[日本語](./README.ja.md)
+**[▶ Live demo](https://tyoukyou23.github.io/telop-ui/)** · [日本語](./README.ja.md)
 
 - **Telops and lower thirds**: slanted caption boxes, speaker name cards, headline boxes
 - **Numbers that perform**: count-up, slot-machine digit rollers, split-flap boards, countdowns
@@ -96,6 +96,10 @@ Utility classes: `tu-wipe` (wipe in), `tu-wipe is-start` / `is-trail` (stagger),
 Built-in strings come in `ja` (default), `en` and `zh`; override any of them with `messages`.
 
 ## Demo
+
+**Online: https://tyoukyou23.github.io/telop-ui/** — open a scene and press **F** for full screen.
+
+To run it locally:
 
 ```sh
 git clone https://github.com/tyoukyou23/telop-ui && cd telop-ui
