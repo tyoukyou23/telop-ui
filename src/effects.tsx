@@ -1,6 +1,6 @@
 import { Children, cloneElement, isValidElement, useEffect, useRef, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { MOTION } from "./tokens";
-import { useIsoLayoutEffect } from "./root";
+import { useIsoLayoutEffect, useSpeed } from "./root";
 
 /*
  * Effects mark a MOMENT (a submission arrived, everyone is in, the answer is out).
@@ -24,18 +24,23 @@ export function TickerStack({ items, bottom = "9.5vh" }: { items: TickerItem[]; 
 }
 
 /** A band that sweeps across the screen ("Everyone's in!"). Calls onDone after MOTION.banner ms. */
-export function SweepBanner({ text, onDone }: { text: ReactNode; onDone?: () => void }) {
+export function SweepBanner({ text, onDone, tone = "primary" }: {
+  text: ReactNode; onDone?: () => void;
+  /** primary band with an accent edge (default) · accent band with a primary edge (louder). */
+  tone?: "primary" | "accent";
+}) {
   // Keep onDone in a ref: screens re-render every second (clock), and restarting the timer
   // on each render would keep the banner up forever.
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const ms = MOTION.banner * useSpeed();
   useEffect(() => {
-    const id = setTimeout(() => doneRef.current?.(), MOTION.banner);
+    const id = setTimeout(() => doneRef.current?.(), ms);
     return () => clearTimeout(id);
-  }, []);
+  }, [ms]);
   return (
     <div className="tu-banner-wrap">
-      <div className="tu-banner">
+      <div className={`tu-banner is-${tone}`}>
         <div className="tu-banner-main">{text}</div>
         <div className="tu-banner-edge" />
       </div>
@@ -104,10 +109,15 @@ export type CreditItem = { key: string | number; section: ReactNode } | { key: s
  * headings. Hover pauses. `seconds` per loop (default: 2.2s per row).
  * Showing people's names publicly needs their consent.
  */
-export function CreditsRoll({ items, seconds, className = "" }: { items: CreditItem[]; seconds?: number; className?: string }) {
+export function CreditsRoll({ items, seconds, align = "split", className = "" }: {
+  items: CreditItem[]; seconds?: number;
+  /** split (name on the left of the center line, value on the right; default) · center (stacked and centered). */
+  align?: "split" | "center";
+  className?: string;
+}) {
   const dur = seconds || Math.max(20, items.length * 2.2);
   return (
-    <div className={`tu-credits ${className}`} style={{ ["--tu-credits-dur" as string]: `${dur}s` }}>
+    <div className={`tu-credits is-${align} ${className}`} style={{ ["--tu-credits-dur" as string]: `${dur}s` }}>
       <div className="tu-credits-track">
         {items.map((it) => ("section" in it ? (
           <div key={it.key} className="tu-credit-section">

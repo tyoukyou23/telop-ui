@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MOTION } from "./tokens";
-import { useIsoLayoutEffect } from "./root";
+import { useIsoLayoutEffect, useSpeed } from "./root";
 
 /**
  * Light/dark mode remembered per screen (localStorage). Read BEFORE the first paint —
@@ -42,7 +42,8 @@ export function useAutoHide(ms: number = MOTION.autoHide): boolean {
 }
 
 /** Animate a number from its previous value. `bump` increments each time it settles. */
-export function useCountUp(target: number | null | undefined, duration: number = MOTION.countUp): [number, number] {
+export function useCountUp(target: number | null | undefined, baseDuration: number = MOTION.countUp): [number, number] {
+  const duration = baseDuration * useSpeed();
   const [value, setValue] = useState(target ?? 0);
   const [bump, setBump] = useState(0);
   const fromRef = useRef(target ?? 0);

@@ -62,6 +62,22 @@ so you can also override them in plain CSS.
 **Use `accent` sparingly.** It is for the one thing people must look at: the hardest question, the winner, the
 last ten seconds. If everything is red, nothing is.
 
+## Global style: shape · motion · density
+
+Three switches on `TelopRoot` change every part at once:
+
+```tsx
+<TelopRoot shape="round" motion="calm" density="compact">…</TelopRoot>
+```
+
+| Prop | Values | What changes |
+|---|---|---|
+| `shape` | `slant` (default) · `square` · `round` | Every box: slanted TV captions, upright blocks, or rounded corners |
+| `motion` | `calm` · `normal` (default) · `snappy` | Every animation (×1.6 / ×1 / ×0.6). Timers that wait for an animation scale with it |
+| `density` | `comfortable` (default) · `compact` | Spacing in lists and panels |
+
+They are CSS variables underneath (`--tu-skew`, `--tu-radius`, `--tu-speed`, `--tu-density`), so you can also fine-tune them in CSS.
+
 ## Live data
 
 ```tsx
@@ -89,7 +105,25 @@ should never go blank in front of an audience.
 | Numbers | `BigNumber` `StatBlock` `SegBar` `ProgressBar` `Countdown` `Clock` `DigitRoller` `SplitFlap` |
 | Charts | `RankingList` `RankingRow` `RankingRace` `BarList` `StackedBar` `ChoiceBars` `Stamp` `DrumrollReveal` |
 | Effects | `TickerStack` `SweepBanner` `Reveal` `Stagger` `CreditsRoll` `Spotlight` |
-| Slides | `SlideDeck` (eyecatch curtain between slides, auto-advance, ← → / Space) |
+| TV segments | `MekuriBoard` `JudgeScores` `VersusMeter` `ScoreBug` `RankReveal` `NewsFlash` |
+| Slides | `SlideDeck` (curtain / fade / slide transitions, auto-advance, ← → / Space) |
+
+### TV segments
+
+Formats borrowed from specific kinds of Japanese TV. Each is driven by the parent — the presenter decides the moment.
+
+| Component | What it is | Forms |
+|---|---|---|
+| `MekuriBoard` | Wide-show flip board: answers under paper strips, peeled one by one | `peel`: right · up · flip — `columns` |
+| `JudgeScores` | Judges' panel: scores one by one, then the total counts up | `reveal`: flip · rise · count — `columns`, `hideTotal` |
+| `VersusMeter` | Two teams on one meter (red vs white, sports day) | `variant`: bar · split |
+| `ScoreBug` | Corner scoreboard of a sports broadcast | `variant`: stack · inline |
+| `RankReveal` | Countdown ranking, announced from the bottom up | `layout`: list · podium |
+| `NewsFlash` | Breaking-news bar from the screen edge | `position`: top · bottom — `tone`: flash · alert |
+
+Most other parts have forms too — e.g. `Telop variant="underline"`, `ProgressBar variant="ring"`,
+`Countdown variant="ring"`, `SegBar variant="dots"`, `TitleCard align="center"`, `SlideDeck transition="fade"`.
+The demo lists every parameter with its default.
 
 Utility classes: `tu-wipe` (wipe in), `tu-wipe is-start` / `is-trail` (stagger), `tu-muted`, `tu-spacer`.
 

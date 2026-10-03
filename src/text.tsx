@@ -9,14 +9,19 @@ export interface TelopProps {
   tone?: Tone;
   /** xs | sm | md | lg | xl, or a raw CSS size. */
   size?: TelopSize | string;
+  /**
+   * slant (default: follows the root `shape`) · box (always upright) ·
+   * underline (no fill, a thick rule under the text — quieter, for sub-headings).
+   */
+  variant?: "slant" | "box" | "underline";
   className?: string;
   style?: CSSProperties;
 }
 
-/** The slanted caption box — the signature element. */
-export function Telop({ children, tone = "primary", size = "md", className = "", style }: TelopProps) {
+/** The caption box — the signature element. Slanted by default. */
+export function Telop({ children, tone = "primary", size = "md", variant = "slant", className = "", style }: TelopProps) {
   return (
-    <span className={`tu-telop tu-fill-${tone} ${className}`} style={{ fontSize: resolveSize(size, TELOP, "md"), ...style }}>
+    <span className={`tu-telop tu-fill-${tone} is-${variant} ${className}`} style={{ fontSize: resolveSize(size, TELOP, "md"), ...style }}>
       <span className="tu-telop-in">{children}</span>
     </span>
   );
@@ -52,9 +57,14 @@ export function LiveDot({ off = false, title }: { off?: boolean; title?: string 
 }
 
 /** Big headline box (primary fill, accent edge). `sub` is a second line, e.g. a translation. */
-export function HeadlineBox({ children, sub, className = "", style }: { children?: ReactNode; sub?: ReactNode; className?: string; style?: CSSProperties }) {
+export function HeadlineBox({ children, sub, variant = "fill", className = "", style }: {
+  children?: ReactNode; sub?: ReactNode;
+  /** fill (primary box, default) · outline (panel color with a primary frame — lighter on bright screens). */
+  variant?: "fill" | "outline";
+  className?: string; style?: CSSProperties;
+}) {
   return (
-    <div className={`tu-qbox ${className}`} style={style}>
+    <div className={`tu-qbox is-${variant} ${className}`} style={style}>
       <div className="tu-t-title">{children}</div>
       {sub && <div className="tu-qbox-sub">{sub}</div>}
     </div>
@@ -62,9 +72,14 @@ export function HeadlineBox({ children, sub, className = "", style }: { children
 }
 
 /** Lower-third caption bar with an accent label (explanations, notices). */
-export function LowerThird({ label, children, className = "" }: { label: ReactNode; children?: ReactNode; className?: string }) {
+export function LowerThird({ label, children, tone = "accent", className = "" }: {
+  label: ReactNode; children?: ReactNode;
+  /** Color of the label: accent (default, draws the eye) · primary (calmer, for notices). */
+  tone?: "accent" | "primary";
+  className?: string;
+}) {
   return (
-    <div className={`tu-lower ${className}`}>
+    <div className={`tu-lower is-${tone} ${className}`}>
       <span className="tu-lower-label"><span className="tu-telop-in">{label}</span></span>
       <div className="tu-lower-body">{children}</div>
     </div>
@@ -72,9 +87,14 @@ export function LowerThird({ label, children, className = "" }: { label: ReactNo
 }
 
 /** Lower third for a person: name (+ reading/sub line) and a role box. For speaker introductions. */
-export function PersonLowerThird({ name, sub, role, className = "" }: { name: ReactNode; sub?: ReactNode; role?: ReactNode; className?: string }) {
+export function PersonLowerThird({ name, sub, role, align = "left", className = "" }: {
+  name: ReactNode; sub?: ReactNode; role?: ReactNode;
+  /** left (role after the name, default) · right (mirrored, for a speaker standing on the right). */
+  align?: "left" | "right";
+  className?: string;
+}) {
   return (
-    <div className={`tu-person tu-wipe ${className}`}>
+    <div className={`tu-person tu-wipe is-${align} ${className}`}>
       <div className="tu-person-name"><b>{name}</b>{sub && <small>{sub}</small>}</div>
       {role && <div className="tu-person-role">{role}</div>}
     </div>
@@ -82,10 +102,15 @@ export function PersonLowerThird({ name, sub, role, className = "" }: { name: Re
 }
 
 /** Title card — the first slide of a ceremony or a talk. `title` may be an array of lines. */
-export function TitleCard({ kicker, title, caption, className = "" }: { kicker?: ReactNode; title: ReactNode | ReactNode[]; caption?: ReactNode; className?: string }) {
+export function TitleCard({ kicker, title, caption, align = "left", className = "" }: {
+  kicker?: ReactNode; title: ReactNode | ReactNode[]; caption?: ReactNode;
+  /** left (default, TV style) · center (ceremonial). */
+  align?: "left" | "center";
+  className?: string;
+}) {
   const lines = Array.isArray(title) ? title : [title];
   return (
-    <div className={`tu-title-card ${className}`}>
+    <div className={`tu-title-card is-${align} ${className}`}>
       {kicker && <Telop tone="accent" size="md" className="tu-wipe is-start">{kicker}</Telop>}
       <div className="tu-title-main">
         {lines.map((l, i) => <div key={i} className="tu-wipe" style={{ animationDelay: `${120 + i * 120}ms` }}>{l}</div>)}
@@ -97,9 +122,14 @@ export function TitleCard({ kicker, title, caption, className = "" }: { kicker?:
 }
 
 /** One big message filling the stage ("No classes today"), with an optional accent reason. */
-export function BigMessage({ children, reason, className = "" }: { children?: ReactNode; reason?: ReactNode; className?: string }) {
+export function BigMessage({ children, reason, align = "left", className = "" }: {
+  children?: ReactNode; reason?: ReactNode;
+  /** left (default) · center. */
+  align?: "left" | "center";
+  className?: string;
+}) {
   return (
-    <div className={`tu-message ${className}`}>
+    <div className={`tu-message is-${align} ${className}`}>
       <div className="tu-t-display tu-wipe">{children}</div>
       {reason && <div className="tu-message-reason"><Telop tone="accent" size="xl" className="tu-wipe" style={{ animationDelay: "150ms" }}>{reason}</Telop></div>}
     </div>

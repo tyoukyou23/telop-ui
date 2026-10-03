@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BigNumber } from "./numbers";
-import { useMessages } from "./root";
+import { useMessages, useSpeed } from "./root";
 import { MOTION } from "./tokens";
 
 /*
@@ -239,7 +239,8 @@ export interface DrumrollProps {
  * Quiz-show reveal: the highlight races across the options, slows down, and lands on the
  * answer — which then turns accent and gets a stamp. Set `play` to start; reset it to rewind.
  */
-export function DrumrollReveal({ options, answer, play, duration = 2800, columns, stampText, onDone, className = "" }: DrumrollProps) {
+export function DrumrollReveal({ options, answer, play, duration: baseDuration = 2800, columns, stampText, onDone, className = "" }: DrumrollProps) {
+  const duration = baseDuration * useSpeed();
   const [lit, setLit] = useState<number | null>(null);
   const [landed, setLanded] = useState(false);
   const doneRef = useRef(onDone);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCountUp, formatCountdown } from "./hooks";
-import { useMessages } from "./root";
+import { useMessages, useSpeed } from "./root";
 import { NUMBER, resolveSize, type NumberSize } from "./tokens";
 import { Telop } from "./text";
 
@@ -67,9 +67,14 @@ export function StatBlock({ label, value, unit, caption, size = "lg", tone, layo
 }
 
 /** One segment per person, filled from the left. Shows progress without revealing who. */
-export function SegBar({ total, filled, tall = false }: { total: number; filled: number; tall?: boolean }) {
+export function SegBar({ total, filled, tall = false, variant = "segments", tone = "primary" }: {
+  total: number; filled: number; tall?: boolean;
+  /** segments (slanted blocks, default) · dots (one round dot per person). */
+  variant?: "segments" | "dots";
+  tone?: Tone;
+}) {
   return (
-    <div className={`tu-segs ${tall ? "is-tall" : ""}`}>
+    <div className={`tu-segs is-${variant} ${tall ? "is-tall" : ""}`} style={{ ["--tu-seg-on" as string]: `var(--tu-${tone})` }}>
       {Array.from({ length: total }).map((_, i) => (
         <span key={i} className={`tu-seg ${i < filled ? "is-on" : ""}`} style={{ transitionDelay: `${(i % 6) * 40}ms` }} />
       ))}
@@ -77,13 +82,51 @@ export function SegBar({ total, filled, tall = false }: { total: number; filled:
   );
 }
 
+/** A ring that fills clockwise (0–1), with anything in the middle. */
+function Ring({ value, size, tone, children }: { value: number; size: string; tone: Tone; children?: ReactNode }) {
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <span className="tu-ring" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="44" className="tu-ring-track" pathLength={100} />
+        <circle cx="50" cy="50" r="44" className="tu-ring-fill" pathLength={100}
+          style={{ stroke: toneColor(tone), strokeDashoffset: 100 - v * 100 }} />
+      </svg>
+      <span className="tu-ring-in">{children}</span>
+    </span>
+  );
+}
+
 /** Continuous bar (0–1) for amounts that are not countable people (time, completion). */
-export function ProgressBar({ value, tone = "primary", height = "1.6vh", className = "" }: { value: number; tone?: Tone; height?: string; className?: string }) {
+export function ProgressBar({ value, tone = "primary", height = "1.6vh", variant = "bar", label = false, size = "min(14vw, 23vh)", className = "" }: {
+  value: number; tone?: Tone; height?: string;
+  /** bar (default) · ring (a circle that fills clockwise). */
+  variant?: "bar" | "ring";
+  /** Show the percentage (inside the ring, or after the bar). */
+  label?: boolean;
+  /** Diameter of the ring. */
+  size?: string;
+  className?: string;
+}) {
   const [w, setW] = useState(0);
   useEffect(() => {
     const id = setTimeout(() => setW(Math.max(0, Math.min(1, value || 0))), 60);
     return () => clearTimeout(id);
   }, [value]);
+  const pct = <span className="tu-big" style={{ color: toneColor(tone) }}>{Math.round(w * 100)}<span className="tu-big-unit">%</span></span>;
+  if (variant === "ring") {
+    return <span className={className}><Ring value={w} size={size} tone={tone}>{label && <span style={{ fontSize: `calc(${size} * .28)` }}>{pct}</span>}</Ring></span>;
+  }
+  if (label) {
+    return (
+      <div className={`tu-progress-row ${className}`}>
+        <div className="tu-progress" style={{ height, flex: 1 }}>
+          <div className="tu-progress-fill" style={{ width: `${w * 100}%`, background: `var(--tu-${tone})` }} />
+        </div>
+        <span style={{ fontSize: `calc(${height} * 2.4)` }}>{pct}</span>
+      </div>
+    );
+  }
   return (
     <div className={`tu-progress ${className}`} style={{ height }}>
       <div className="tu-progress-fill" style={{ width: `${w * 100}%`, background: `var(--tu-${tone})` }} />
@@ -102,10 +145,29 @@ export interface CountdownProps {
   done?: ReactNode;
   /** In the last N seconds the number pulses and turns accent (3, 2, 1…). Default 10; 0 to disable. */
   finalSeconds?: number;
+  /** digits (default) · ring (the digits inside a ring that empties as time runs out). */
+  variant?: "digits" | "ring";
+  /** Seconds the full ring stands for (ring only). Default 60. */
+  total?: number;
+  /** Diameter of the ring. */
+  ringSize?: string;
 }
 
 /** Countdown to a moment. The last seconds pulse; at zero it switches to a word. */
-export function Countdown({ target, now, size = "xl", tone = "primary", done, finalSeconds = 10 }: CountdownProps) {
+export function Countdown({ target, now, size = "xl", tone = "primary", done, finalSeconds = 10, variant = "digits", total = 60, ringSize = "min(30vw, 50vh)" }: CountdownProps) {
+  const left = Math.ceil((target - now) / 1000);
+  if (variant === "ring") {
+    const final = finalSeconds > 0 && left > 0 && left <= finalSeconds;
+    return (
+      <Ring value={Math.max(0, left) / total} size={ringSize} tone={final ? "accent" : tone}>
+        <Countdown target={target} now={now} size={`calc(${ringSize} * .3)`} tone={tone} done={done} finalSeconds={finalSeconds} />
+      </Ring>
+    );
+  }
+  return <CountdownDigits target={target} now={now} size={size} tone={tone} done={done} finalSeconds={finalSeconds} />;
+}
+
+function CountdownDigits({ target, now, size = "xl", tone = "primary", done, finalSeconds = 10 }: CountdownProps) {
   const m = useMessages();
   const left = Math.ceil((target - now) / 1000);
   const fs = resolveSize(size, NUMBER, "xl");
@@ -168,7 +230,8 @@ export interface DigitRollerProps {
  * Slot-machine counter — every digit spins and lands, right to left. For big reveals
  * ("128 students admitted"). For a number that changes often, use BigNumber instead.
  */
-export function DigitRoller({ value, minDigits = 1, size = "xl", tone = "primary", unit, duration = 1400, separator }: DigitRollerProps) {
+export function DigitRoller({ value, minDigits = 1, size = "xl", tone = "primary", unit, duration: baseDuration = 1400, separator }: DigitRollerProps) {
+  const duration = baseDuration * useSpeed();
   const digits = String(Math.max(0, Math.round(value))).padStart(minDigits, "0").split("").map(Number);
   const n = digits.length;
   return (

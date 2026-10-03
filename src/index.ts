@@ -13,8 +13,8 @@ export type { Messages, Locale } from "./i18n";
 export { CSS } from "./styles";
 
 // root & hooks
-export { TelopRoot, useTelop, useMessages } from "./root";
-export type { TelopRootProps } from "./root";
+export { TelopRoot, useTelop, useMessages, useSpeed, SPEED } from "./root";
+export type { TelopRootProps, Shape, Motion, Density } from "./root";
 export {
   useStoredMode, useAutoHide, useCountUp, useNow, useHotkeys, usePolling,
   formatClock, formatCountdown, toggleFullscreen,
@@ -40,6 +40,10 @@ export type { RankingRowProps, RankingItem, BarItem, ChoiceOption, RaceItem, Dru
 // effects
 export { TickerStack, SweepBanner, Reveal, Stagger, CreditsRoll, Spotlight } from "./effects";
 export type { TickerItem, CreditItem } from "./effects";
+
+// TV segments
+export { MekuriBoard, JudgeScores, VersusMeter, ScoreBug, RankReveal, NewsFlash } from "./shows";
+export type { MekuriItem, MekuriBoardProps, Judge, JudgeScoresProps, Side, VersusMeterProps, ScoreBugProps, RevealRankItem, RankRevealProps, NewsFlashProps } from "./shows";
 
 // slides
 export { SlideDeck } from "./slides";

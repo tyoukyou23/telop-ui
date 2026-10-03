@@ -62,6 +62,22 @@ const school = createTheme("school", { primary: "#25408e", accent: "#d2232a" }, 
 **`accent` は控えめに。** 見てほしい 1 点（いちばん難しかった問題・1 位・残り 10 秒）のための色です。
 全部が赤なら、どれも目立ちません。
 
+## 全体の見た目: 形・動き・密度
+
+`TelopRoot` の 3 つのスイッチで、すべての部品がまとめて変わります。
+
+```tsx
+<TelopRoot shape="round" motion="calm" density="compact">…</TelopRoot>
+```
+
+| プロパティ | 値 | 変わるもの |
+|---|---|---|
+| `shape` | `slant`（既定）・`square`・`round` | すべての箱: 斜めのテロップ／四角／角丸 |
+| `motion` | `calm`・`normal`（既定）・`snappy` | すべての動き（×1.6／×1／×0.6）。動きを待つタイマーも一緒に伸び縮みします |
+| `density` | `comfortable`（既定）・`compact` | 一覧やパネルの余白 |
+
+中身は CSS 変数（`--tu-skew`・`--tu-radius`・`--tu-speed`・`--tu-density`）なので、CSS で細かく調整することもできます。
+
 ## ライブのデータ
 
 ```tsx
@@ -89,7 +105,25 @@ if (!data) return <StatusScreen message={error} onRetry={refresh} />;
 | 数字 | `BigNumber` `StatBlock` `SegBar` `ProgressBar` `Countdown` `Clock` `DigitRoller` `SplitFlap` |
 | 図表 | `RankingList` `RankingRow` `RankingRace` `BarList` `StackedBar` `ChoiceBars` `Stamp` `DrumrollReveal` |
 | 効果 | `TickerStack` `SweepBanner` `Reveal` `Stagger` `CreditsRoll` `Spotlight` |
-| スライド | `SlideDeck`（スライド間のアイキャッチ・自動送り・← → / Space） |
+| 番組のコーナー | `MekuriBoard` `JudgeScores` `VersusMeter` `ScoreBug` `RankReveal` `NewsFlash` |
+| スライド | `SlideDeck`（幕・フェード・スライドの切り替え・自動送り・← → / Space） |
+
+### 番組のコーナー
+
+日本のテレビ番組の決まった形を部品にしたもの。どれも呼ぶ側が進めます（いつ出すかは司会者が決める）。
+
+| 部品 | 何か | 形 |
+|---|---|---|
+| `MekuriBoard` | ワイドショーのめくりフリップ。紙を 1 枚ずつはがして答えを見せる | `peel`: right・up・flip ／ `columns` |
+| `JudgeScores` | 審査員の採点（M-1 風）。1 人ずつ点が出て、合計が数え上がる | `reveal`: flip・rise・count ／ `columns`・`hideTotal` |
+| `VersusMeter` | 対抗戦（紅白・運動会）。リードしている側へ境目が動く | `variant`: bar・split |
+| `ScoreBug` | スポーツ中継の隅のスコア表示 | `variant`: stack・inline |
+| `RankReveal` | 第10位からのランキング発表 | `layout`: list・podium |
+| `NewsFlash` | 画面の端から出るニュース速報 | `position`: top・bottom ／ `tone`: flash・alert |
+
+ほかの部品にも形があります（`Telop variant="underline"`・`ProgressBar variant="ring"`・
+`Countdown variant="ring"`・`SegBar variant="dots"`・`TitleCard align="center"`・`SlideDeck transition="fade"` など）。
+デモにすべてのパラメータと既定値が載っています。
 
 補助クラス: `tu-wipe`（ワイプで出る）・`tu-wipe is-start` / `is-trail`（時間差）・`tu-muted`・`tu-spacer`。
 
