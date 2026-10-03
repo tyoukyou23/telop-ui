@@ -45,6 +45,7 @@
   "scripts": {
     "build": "tsup && node scripts/write-css.mjs",
     "prepare": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test",
     "dev": "vite demo",
     "demo:build": "vite build demo --outDir ../demo-dist --emptyOutDir",
     "typecheck": "tsc --noEmit",
