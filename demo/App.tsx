@@ -108,27 +108,96 @@ function Segmented<V extends Value>({ label, value, options, onChange, names, de
   );
 }
 
-/** A 16:9 screen: renders children at full projector size and scales them to the box width. */
-function Screen({ children, rootProps, maxWidth }: { children: ReactNode; rootProps: RootProps; maxWidth?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.4);
+/*
+ * Previews live in iframes with a fixed 1600×900 viewport. The parts are sized in vw / vh
+ * (for a projector), so the only way to show them at a true 16:9 on a phone or an odd
+ * window is to give them their own viewport and scale the frame down. The frame loads
+ * once; later changes (parameters, step, style) arrive by postMessage, so animations run
+ * on instead of restarting.
+ */
+const FRAME_W = 1600;
+const FRAME_H = 900;
+
+export interface EmbedState {
+  kind: "scene" | "entry";
+  id: string;
+  lang: Lang;
+  mode: "light" | "dark";
+  style: Style;
+  p?: Props;
+  step?: number;
+}
+
+function Frame({ state, interactive = false, title }: { state: EmbedState; interactive?: boolean; title: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [scale, setScale] = useState(0.25);
+  // the URL is fixed at mount: changing it would reload the frame and restart every animation
+  const [src] = useState(() => `?embed=${encodeURIComponent(JSON.stringify(state))}`);
   useLayoutEffect(() => {
-    const el = ref.current;
+    const el = box.current;
     if (!el) return undefined;
-    const fit = () => setScale(el.clientWidth / window.innerWidth);
+    const fit = () => setScale(el.clientWidth / FRAME_W);
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
-    addEventListener("resize", fit);
-    return () => { ro.disconnect(); removeEventListener("resize", fit); };
+    return () => ro.disconnect();
   }, []);
+  const json = JSON.stringify(state);
+  const send = () => frame.current?.contentWindow?.postMessage({ type: "telop-demo", state: JSON.parse(json) }, "*");
+  useEffect(send, [json]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={ref} className="d-screen" style={{ maxWidth, aspectRatio: `${innerWidth} / ${innerHeight}` }}>
-      <div className="d-screen-inner" style={{ transform: `scale(${scale})` }}>
-        <TelopRoot {...rootProps} paintBody={false}>{children}</TelopRoot>
-      </div>
+    <div ref={box} className={`d-screen ${interactive ? "" : "is-static"}`}>
+      <iframe ref={frame} src={src} title={title} loading="lazy" onLoad={send} tabIndex={interactive ? 0 : -1}
+        style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }} />
     </div>
   );
+}
+
+/** What an iframe renders: one scene or one component preview, nothing else. */
+function EmbedView({ initial }: { initial: EmbedState }) {
+  const [st, setSt] = useState<EmbedState>(initial);
+  const now = useNow(1000);
+  useEffect(() => {
+    const on = (e: MessageEvent) => { if (e.data?.type === "telop-demo") setSt(e.data.state as EmbedState); };
+    addEventListener("message", on);
+    return () => removeEventListener("message", on);
+  }, []);
+  const t = T[st.lang];
+  const rootProps: RootProps = { theme: presets[st.style.theme], mode: st.mode, locale: st.lang, shape: st.style.shape, motion: st.style.motion, density: st.style.density };
+  let body: ReactNode = null;
+  if (st.kind === "scene") {
+    body = <SceneView id={st.id as SceneId} t={t} lang={st.lang} now={now} />;
+  } else {
+    const entry = ENTRIES.find((e) => e.id === st.id);
+    if (entry) {
+      const ctx = { p: st.p ?? defaultsOf(entry), step: st.step ?? 0, t, lang: st.lang, now };
+      body = entry.screen ? entry.render(ctx) : (
+        <div className="tu-stage is-no-band" style={{ justifyContent: "center" }}><div style={{ width: "100%" }}>{entry.render(ctx)}</div></div>
+      );
+    }
+  }
+  return <TelopRoot {...rootProps}><style>{"html,body{margin:0;overflow:hidden}"}</style>{body}</TelopRoot>;
+}
+
+const EMBED: EmbedState | null = (() => {
+  try {
+    const raw = new URLSearchParams(location.search).get("embed");
+    return raw ? (JSON.parse(raw) as EmbedState) : null;
+  } catch { return null; }
+})();
+
+/** True on phone-width windows (follows resizes). */
+function useNarrow(): boolean {
+  const q = "(max-width: 760px)";
+  const [narrow, setNarrow] = useState(() => matchMedia(q).matches);
+  useEffect(() => {
+    const m = matchMedia(q);
+    const on = () => setNarrow(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return narrow;
 }
 
 /** Very small JSX highlighter: tags, attribute names, strings, braces, comments. */
@@ -164,6 +233,10 @@ function CodeBlock({ code, u }: { code: string; u: typeof UI.ja }) {
 /* ───────────────────────── app ───────────────────────── */
 
 export function App() {
+  return EMBED ? <EmbedView initial={EMBED} /> : <Site />;
+}
+
+function Site() {
   const [lang, setLang] = useState<Lang>("ja");
   const [mode, toggleMode] = useStoredMode("telop-ui-demo-mode");
   const [style, setStyle] = useState<Style>({ theme: "broadcast", shape: "slant", motion: "normal", density: "comfortable" });
@@ -212,16 +285,18 @@ export function App() {
           <a className="d-link" href="https://github.com/tyoukyou23/telop-ui" target="_blank" rel="noreferrer">GitHub</a>
           <a className="d-link" href="https://www.npmjs.com/package/telop-ui" target="_blank" rel="noreferrer">npm</a>
           <button type="button" className="d-icon" onClick={toggleMode} title={mode === "dark" ? "Light" : "Dark"} aria-label="Toggle light / dark">{mode === "dark" ? "☀" : "☾"}</button>
-          <Segmented value={lang} options={["ja", "en"] as const} onChange={setLang} names={{ ja: "日本語", en: "EN" }} />
+          <Segmented value={lang} options={["ja", "en"] as const} onChange={setLang} names={{ ja: "JA", en: "EN" }} />
         </div>
       </header>
 
       {route.tab === "scenes"
-        ? <ScenesTab lang={lang} now={now} rootProps={rootProps} style={style} setStyle={setStyle} />
-        : <ComponentsTab id={route.id} lang={lang} now={now} rootProps={rootProps} style={style} setStyle={setStyle} />}
+        ? <ScenesTab lang={lang} mode={mode} style={style} setStyle={setStyle} />
+        : <ComponentsTab id={route.id} lang={lang} mode={mode} style={style} setStyle={setStyle} />}
 
       <footer className="d-foot">
         <span>telop-ui v{VERSION}</span><span>MIT © tyoukyou23</span>
+        <a href="https://github.com/tyoukyou23/telop-ui" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://www.npmjs.com/package/telop-ui" target="_blank" rel="noreferrer">npm</a>
         <span className="d-flex" />
         <span>{lang === "ja" ? "デモの人名・学校名・数字はすべて架空です。" : "All names and numbers in this demo are fictional."}</span>
       </footer>
@@ -242,11 +317,12 @@ function StylePanel({ style, setStyle, lang, horizontal = false }: { style: Styl
   );
 }
 
-interface TabProps { lang: Lang; now: number; rootProps: RootProps; style: Style; setStyle: (s: Style) => void }
+interface TabProps { lang: Lang; mode: "light" | "dark"; style: Style; setStyle: (s: Style) => void }
 
-function ScenesTab({ lang, now, rootProps, style, setStyle }: TabProps) {
-  const t = T[lang];
+function ScenesTab({ lang, mode, style, setStyle }: TabProps) {
   const u = UI[lang];
+  const narrow = useNarrow();
+  const panel = <StylePanel style={style} setStyle={setStyle} lang={lang} horizontal />;
   return (
     <div className="d-wrap">
       <section className="d-hero">
@@ -261,14 +337,14 @@ function ScenesTab({ lang, now, rootProps, style, setStyle }: TabProps) {
 
       <div className="d-section-head">
         <h2>{u.scenes}</h2>
-        <StylePanel style={style} setStyle={setStyle} lang={lang} horizontal />
+        {narrow ? <details className="d-fold"><summary>{u.style}</summary>{panel}</details> : panel}
       </div>
 
       <div className="d-scenes">
         {SCENES.map((id) => (
           <article key={id} className="d-card">
-            <a className="d-card-screen" href={`#/scene/${id}`} aria-label={u.open}>
-              <Screen rootProps={rootProps}><SceneView id={id} t={t} lang={lang} now={now} /></Screen>
+            <a className="d-card-screen" href={`#/scene/${id}`} aria-label={`${SCENE_NAMES[lang][id]} — ${u.open}`}>
+              <Frame title={SCENE_NAMES[lang][id]} state={{ kind: "scene", id, lang, mode, style }} />
               <span className="d-card-open">{u.open} ↗</span>
             </a>
             <div className="d-card-body">
@@ -285,10 +361,19 @@ function ScenesTab({ lang, now, rootProps, style, setStyle }: TabProps) {
   );
 }
 
-function ComponentsTab({ id, lang, now, rootProps, style, setStyle }: TabProps & { id: string }) {
+function ComponentsTab({ id, lang, mode, style, setStyle }: TabProps & { id: string }) {
   const entry = ENTRIES.find((e) => e.id === id) ?? ENTRIES[0];
   return (
     <div className="d-docs">
+      <label className="d-picker">
+        <select value={entry.id} onChange={(e) => { location.hash = `#/c/${e.target.value}`; }}>
+          {GROUPS.map((g) => (
+            <optgroup key={g.id} label={g[lang]}>
+              {ENTRIES.filter((e) => e.group === g.id).map((e) => <option key={e.id} value={e.id}>{e.name}{NEW_IDS.has(e.id) ? "  — NEW" : ""}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </label>
       <aside className="d-nav">
         {GROUPS.map((g) => {
           const items = ENTRIES.filter((e) => e.group === g.id);
@@ -305,18 +390,18 @@ function ComponentsTab({ id, lang, now, rootProps, style, setStyle }: TabProps &
         })}
       </aside>
       {/* keyed: switching components starts from that component's defaults */}
-      <EntryView key={entry.id} entry={entry} lang={lang} now={now} rootProps={rootProps} style={style} setStyle={setStyle} />
+      <EntryView key={entry.id} entry={entry} lang={lang} mode={mode} style={style} setStyle={setStyle} />
     </div>
   );
 }
 
-function EntryView({ entry, lang, now, rootProps, style, setStyle }: TabProps & { entry: Entry }) {
+function EntryView({ entry, lang, mode, style, setStyle }: TabProps & { entry: Entry }) {
   const u = UI[lang];
   const t = T[lang];
   const defaults = defaultsOf(entry);
   const [p, setP] = useState<Props>(defaults);
   const [step, setStep] = useState(0);
-  const ctx = { p, step, t, lang, now };
+  const ctx = { p, step, t, lang, now: Date.now() };
   const group = GROUPS.find((g) => g.id === entry.group);
   const names = entry.name.split(" · ");
   // When the global style differs from the defaults, show the TelopRoot that produces it,
@@ -331,11 +416,9 @@ function EntryView({ entry, lang, now, rootProps, style, setStyle }: TabProps & 
   const imports = [...(rootAttrs ? ["TelopRoot", ...(style.theme !== "broadcast" ? ["presets"] : [])] : []), ...names];
   const code = `import { ${imports.join(", ")} } from "telop-ui";\n\n${
     rootAttrs ? `<TelopRoot${rootAttrs}>\n${body.replace(/^/gm, "  ")}\n</TelopRoot>` : body}`;
-  // Parts that fill the screen are drawn as they are; the rest are centered on a bare stage.
-  const preview = entry.screen ? entry.render(ctx) : (
-    <div className="tu-stage is-no-band" style={{ justifyContent: "center" }}><div style={{ width: "100%" }}>{entry.render(ctx)}</div></div>
-  );
   const steps = entry.steps;
+  // open exactly this preview (parameters, step, style) on its own page — on a phone, turn it sideways
+  const embedHref = `?embed=${encodeURIComponent(JSON.stringify({ kind: "entry", id: entry.id, lang, mode, style, p, step }))}`;
 
   return (
     <>
@@ -345,21 +428,24 @@ function EntryView({ entry, lang, now, rootProps, style, setStyle }: TabProps & 
         <p className="d-desc">{entry.desc[lang]}</p>
 
         <div className="d-stagebox">
-          <Screen rootProps={rootProps}>{preview}</Screen>
+          <Frame interactive title={entry.name} state={{ kind: "entry", id: entry.id, lang, mode, style, p, step }} />
           {steps != null && (
             <div className="d-player">
-              <button type="button" className="d-btn" onClick={() => setStep(0)} disabled={step === 0}>⟲ {u.reset}</button>
+              <button type="button" className="d-btn" onClick={() => setStep(0)} disabled={step === 0} aria-label={u.reset}>⟲<span className="d-wide-only"> {u.reset}</span></button>
               <div className="d-progress" aria-label={`${step} / ${steps}`}>
                 {steps <= 12
                   ? Array.from({ length: steps }).map((_, i) => <span key={i} className={i < step ? "is-on" : ""} />)
                   : <b>{step} / {steps}</b>}
               </div>
               <button type="button" className="d-btn is-main" onClick={() => setStep((s) => Math.min(s + 1, steps))} disabled={step >= steps}>{u.next} ▶</button>
+              <a className="d-btn" href={embedHref} target="_blank" rel="noreferrer" title={u.fullscreen} aria-label={u.fullscreen}>⤢</a>
             </div>
+          )}
+          {steps == null && (
+            <div className="d-player"><span className="d-flex" /><a className="d-btn" href={embedHref} target="_blank" rel="noreferrer" title={u.fullscreen} aria-label={u.fullscreen}>⤢ {u.fullscreen}</a></div>
           )}
         </div>
 
-        <CodeBlock code={code} u={u} />
       </main>
 
       <aside className="d-inspector">
@@ -376,6 +462,8 @@ function EntryView({ entry, lang, now, rootProps, style, setStyle }: TabProps & 
           <StylePanel style={style} setStyle={setStyle} lang={lang} />
         </section>
       </aside>
+
+      <div className="d-codewrap"><CodeBlock code={code} u={u} /></div>
     </>
   );
 }
@@ -456,7 +544,13 @@ const DEMO_CSS = `
 .d-chip:hover { box-shadow: inset 0 0 0 1px var(--tu-primary); }
 
 /* components tab: nav · main · inspector */
-.d-docs { display: grid; grid-template-columns: 220px minmax(0, 1fr) 290px; gap: 36px; max-width: 1480px; margin: 0 auto; padding: 28px 28px 0; align-items: start; }
+.d-docs { display: grid; grid-template-columns: 220px minmax(0, 1fr) 290px; grid-template-areas: "nav main insp" "nav code insp";
+  grid-template-rows: auto 1fr; gap: 0 36px; max-width: 1480px; margin: 0 auto; padding: 28px 28px 0; align-items: start; }
+.d-nav { grid-area: nav; }
+.d-main { grid-area: main; }
+.d-inspector { grid-area: insp; }
+.d-codewrap { grid-area: code; min-width: 0; }
+.d-picker { display: none; }
 .d-nav { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow: auto; padding-bottom: 20px; }
 .d-nav-group + .d-nav-group { margin-top: 20px; }
 .d-nav-title { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; font-weight: 900; color: var(--tu-mute); letter-spacing: .06em; margin-bottom: 6px; }
@@ -474,9 +568,12 @@ const DEMO_CSS = `
 .d-title { margin: 6px 0 0; font: 800 28px ui-monospace, Menlo, monospace; letter-spacing: -.01em; }
 .d-desc { margin: 10px 0 0; max-width: 760px; font-size: 14.5px; font-weight: 700; line-height: 1.7; color: var(--tu-mute); }
 .d-stagebox { margin-top: 22px; background: var(--tu-panel); box-shadow: inset 0 0 0 1px var(--d-line); border-radius: var(--tu-radius); padding: 14px; }
-.d-screen { position: relative; width: 100%; overflow: hidden; background: var(--tu-bg); box-shadow: 0 0 0 1px var(--d-line); border-radius: var(--tu-radius); }
-.d-screen-inner { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; }
+/* the preview: a 16:9 box holding a 1600x900 iframe scaled to fit */
+.d-screen { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--tu-bg); box-shadow: 0 0 0 1px var(--d-line); border-radius: var(--tu-radius); }
+.d-screen iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; background: var(--tu-bg); }
+.d-screen.is-static iframe { pointer-events: none; }
 .d-player { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.d-player .d-btn { white-space: nowrap; }
 .d-progress { flex: 1; display: flex; justify-content: center; gap: 5px; font: 800 13px ui-monospace, Menlo, monospace; color: var(--tu-mute); }
 .d-progress span { width: 22px; height: 5px; background: var(--d-line); border-radius: 3px; transition: background .2s; }
 .d-progress span.is-on { background: var(--tu-primary); }
@@ -509,15 +606,48 @@ const DEMO_CSS = `
 
 /* narrower windows: the inspector goes under the preview, then the nav goes on top */
 @media (max-width: 1180px) {
-  .d-docs { grid-template-columns: 200px minmax(0, 1fr); }
-  .d-inspector { position: static; grid-column: 2; max-height: none; }
+  .d-docs { grid-template-columns: 200px minmax(0, 1fr); grid-template-areas: "nav main" "nav insp" "nav code"; grid-template-rows: auto auto 1fr; }
+  .d-inspector { position: static; max-height: none; margin-top: 22px; }
 }
+
+/* phones: one column; nav becomes a select; style folds away; header never wraps */
 @media (max-width: 760px) {
-  .d-docs { grid-template-columns: 1fr; gap: 20px; }
-  .d-nav { position: static; max-height: 220px; }
-  .d-inspector { grid-column: 1; }
-  .d-top-in { gap: 10px; padding: 0 14px; }
-  .d-link { display: none; }
-  .d-scenes { grid-template-columns: 1fr; }
+  .tu-root { --d-text: 15px; }
+  .d-top-in { gap: 6px; padding: 0 12px; height: 52px; }
+  .d-brand b { font-size: 16px; }
+  .d-ver, .d-link { display: none; }
+  .d-tabs { margin-left: 2px; }
+  .d-tabs a { padding: 0 9px; }
+  .d-top a, .d-top b, .d-top button { white-space: nowrap; }
+  .d-wrap { padding: 0 16px; }
+  .d-hero { padding: 30px 0 26px; }
+  .d-hero-title { font-size: 34px; }
+  .d-brand-mark.is-big { width: 32px; height: 32px; margin-right: 12px; }
+  .d-hero-lead { font-size: 15px; }
+  .d-section-head { margin: 26px 0 14px; align-items: center; }
+  .d-scenes { grid-template-columns: 1fr; gap: 18px; }
+  .d-card-open { opacity: 1; transform: none; }
+  .d-docs { grid-template-columns: minmax(0, 1fr); grid-template-areas: "pick" "main" "insp" "code"; grid-template-rows: none; padding: 16px 16px 0; }
+  .d-nav { display: none; }
+  .d-picker { display: block; grid-area: pick; margin-bottom: 16px; }
+  .d-picker select { width: 100%; padding: 12px 14px; font: 700 16px ui-monospace, Menlo, monospace; color: var(--tu-fg);
+    background: var(--tu-panel); border: 0; box-shadow: inset 0 0 0 1px var(--d-line); border-radius: var(--tu-radius); }
+  .d-title { font-size: 22px; }
+  .d-desc { font-size: 14px; }
+  .d-stagebox { padding: 8px; }
+  .d-player { gap: 8px; }
+  .tu-root .d-btn { padding: 11px 14px; }
+  .d-progress span { width: 8px; }
+  .d-wide-only { display: none; }
+  .d-player .d-btn { white-space: nowrap; padding: 11px 12px; }
+  .tu-root .d-seg-opt { padding: 9px 12px; font-size: 13.5px; }
+  .d-code pre { font-size: 12px; padding: 12px; }
+  .d-foot { margin-top: 40px; padding: 20px 16px 32px; }
 }
+.d-fold summary { cursor: pointer; font-weight: 800; padding: 9px 14px; list-style: none; box-shadow: inset 0 0 0 1px var(--d-line); border-radius: var(--tu-radius); }
+.d-fold summary::-webkit-details-marker { display: none; }
+.d-fold summary::after { content: " ▾"; color: var(--tu-mute); }
+.d-fold[open] summary::after { content: " ▴"; }
+.d-fold[open] { flex-basis: 100%; }
+.d-fold[open] .d-style { margin-top: 14px; flex-direction: column; }
 `;
