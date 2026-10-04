@@ -6,8 +6,10 @@
 // foundations
 export { TEXT, TELOP, NUMBER, MOTION, resolveSize } from "./tokens";
 export type { TextSize, TelopSize, NumberSize } from "./tokens";
-export { presets, broadcast, variety, ceremony, createTheme, themeVars } from "./theme";
-export type { TelopTheme, ModeColors } from "./theme";
+export { presets, broadcast, variety, ceremony, createTheme, checkTheme, themeVars } from "./theme";
+export type { TelopTheme, ModeColors, BrandColors, ThemeIssue } from "./theme";
+export { parseColor, toHex, luminance, contrastRatio, mix, readableOn, ensureContrast } from "./color";
+export type { RGB } from "./color";
 export { MESSAGES } from "./i18n";
 export type { Messages, Locale } from "./i18n";
 export { CSS } from "./styles";

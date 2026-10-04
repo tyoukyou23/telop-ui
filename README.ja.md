@@ -46,17 +46,31 @@ export function Submissions({ done, total }: { done: number; total: number }) {
 ## テーマ
 
 既定は 3 つ: `broadcast`（紺＋赤）・`variety`（墨＋橙）・`ceremony`（緑＋金）。
-ブランドの 2 色から自分のテーマも作れます。
+自分のテーマは、ブランドの 2 色だけで作れます。
 
 ```tsx
 import { createTheme, TelopRoot } from "telop-ui";
 
-const school = createTheme("school", { primary: "#25408e", accent: "#d2232a" }, { primary: "#8ea6ec", accent: "#ff5157" });
+const school = createTheme("school", { primary: "#1d6b46", accent: "#b07f00" });
 
 <TelopRoot theme={school} mode="dark">…</TelopRoot>
 ```
 
-色はすべて CSS 変数（`--tu-bg` `--tu-fg` `--tu-primary` `--tu-accent` `--tu-panel` `--tu-mute` `--tu-track` …）なので、
+`createTheme` は、ほかの色を**明るい地・暗い地の両方**ぶん自動で作ります。
+
+- 背景・面・文字・補足の文字を `primary` の色味で
+- 塗りの上の文字色 — 読めるうちは白（太い字幕なので 3:1）、足りなければ濃い色
+- 暗い地用のブランド色 — 暗い背景で読めるところまで明るくした色
+
+どの色も手で指定できます（`bg`・`fg`・`panel`・`onPrimary`・`onAccent`・`mute`・`track`）。
+3 つ目の引数で暗い地の色だけを上書きできます。
+
+**コントラストの確認。** 開発中は、プロジェクターで読みにくい組み合わせを一度だけコンソールに出します。
+同じ内容は `checkTheme(theme)` で取れます（`contrastRatio`・`readableOn`・`mix`・`ensureContrast` も公開）。
+[デモ](https://tyoukyou23.github.io/telop-ui/)の「テーマ → カスタム」で色を試せます。警告と `createTheme` の書き方が出て、
+リンクに色が残ります。
+
+色はすべて CSS 変数（`--tu-bg` `--tu-fg` `--tu-primary` `--tu-accent` `--tu-on-accent` `--tu-panel` `--tu-mute` `--tu-track` …）でもあるので、
 普通の CSS で上書きすることもできます。
 
 **`accent` は控えめに。** 見てほしい 1 点（いちばん難しかった問題・1 位・残り 10 秒）のための色です。

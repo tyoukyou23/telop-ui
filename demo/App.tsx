@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import {
   TelopRoot, CtrlButton,
-  presets, useStoredMode, useAutoHide, useNow, useHotkeys, toggleFullscreen,
+  presets, createTheme, checkTheme, useStoredMode, useAutoHide, useNow, useHotkeys, toggleFullscreen,
   type TelopTheme, type Shape, type Motion, type Density,
 } from "telop-ui";
 import { T, type Lang } from "./content";
@@ -18,7 +18,7 @@ import { ENTRIES, GROUPS, defaultsOf, ENTRY, type Entry, type Props, type Value 
  *                (this component's parameters, then the global style).
  */
 
-const VERSION = "0.2.1";
+const VERSION = "0.3.0";
 /** Components added in this version (marked NEW in the nav). */
 const NEW_IDS = new Set(["mekuri", "judges", "versus", "scorebug", "rankreveal", "flash"]);
 
@@ -66,6 +66,7 @@ const UI = {
     styleNote: "すべての部品に効きます。TelopRoot に渡します。", parts: "使っている部品", open: "全画面で開く", fullscreen: "全画面",
     heroLead: "日本のテレビ番組のような画面を React で。プロジェクター・ロビーの掲示・ライブ集計・式典のための部品集です。",
     heroNote: "依存なし・React 17 以上・型つき・MIT", browse: "部品を見る",
+    custom: "カスタム", lowContrast: "投影すると読みにくい組み合わせです", contrastOk: "明るい地・暗い地とも読みやすい組み合わせです（暗い地の色は自動で作ります）",
   },
   en: {
     scenes: "Scenes", components: "Components", style: "Style (global)", params: "Parameters", theme: "Theme", shape: "Shape", motion: "Motion", density: "Density",
@@ -74,11 +75,46 @@ const UI = {
     styleNote: "Applies to every part. Passed to TelopRoot.", parts: "Built from", open: "Open full screen", fullscreen: "Full screen",
     heroLead: "Japanese TV-broadcast style screens in React — parts for projectors, lobby signage, live tallies and ceremonies.",
     heroNote: "No dependencies · React 17+ · typed · MIT", browse: "Browse components",
+    custom: "Custom", lowContrast: "Hard to read on a projector", contrastOk: "Readable in both light and dark (the dark colors are derived for you)",
   },
 };
 
 type RootProps = Omit<ComponentProps<typeof TelopRoot>, "children">;
-interface Style { theme: keyof typeof presets; shape: Shape; motion: Motion; density: Density }
+type ThemeName = keyof typeof presets | "custom";
+interface Style { theme: ThemeName; custom: { primary: string; accent: string }; shape: Shape; motion: Motion; density: Density }
+
+/** Two-color pairs offered next to the color pickers. Every pair must pass checkTheme —
+ *  a recommended pair that is hard to read on a projector would teach the wrong thing. */
+const SWATCHES: Array<{ name: string; primary: string; accent: string }> = [
+  { name: "紺 × 赤", primary: "#25408e", accent: "#d2232a" },
+  { name: "森 × 金", primary: "#1d6b46", accent: "#b07f00" },
+  { name: "紫 × 桃", primary: "#4b2a83", accent: "#d93a72" },
+  { name: "海 × 橙", primary: "#0b5c7a", accent: "#d9640a" },
+  { name: "茶 × 緑", primary: "#5c3a24", accent: "#23875a" },
+  { name: "墨 × 橙", primary: "#1c1c1c", accent: "#e85a00" },
+];
+
+/** One custom theme per color pair (createTheme also checks the contrast once per name). */
+const customCache = new Map<string, TelopTheme>();
+function themeOf(style: Style): TelopTheme {
+  if (style.theme !== "custom") return presets[style.theme];
+  const key = `${style.custom.primary}-${style.custom.accent}`;
+  if (!customCache.has(key)) customCache.set(key, createTheme(`custom ${key}`, style.custom));
+  return customCache.get(key) as TelopTheme;
+}
+
+/** `?primary=25408e&accent=d2232a` opens the demo with that custom theme (shareable links). */
+function styleFromUrl(): Style {
+  const q = new URLSearchParams(location.search);
+  const hex = (v: string | null) => (v && /^[0-9a-f]{6}$/i.test(v) ? `#${v.toLowerCase()}` : null);
+  const primary = hex(q.get("primary"));
+  const accent = hex(q.get("accent"));
+  return {
+    theme: primary && accent ? "custom" : "broadcast",
+    custom: { primary: primary ?? SWATCHES[1].primary, accent: accent ?? SWATCHES[1].accent },
+    shape: "slant", motion: "normal", density: "comfortable",
+  };
+}
 
 /* ───────────────────────── small parts ───────────────────────── */
 
@@ -164,7 +200,7 @@ function EmbedView({ initial }: { initial: EmbedState }) {
     return () => removeEventListener("message", on);
   }, []);
   const t = T[st.lang];
-  const rootProps: RootProps = { theme: presets[st.style.theme], mode: st.mode, locale: st.lang, shape: st.style.shape, motion: st.style.motion, density: st.style.density };
+  const rootProps: RootProps = { theme: themeOf(st.style), mode: st.mode, locale: st.lang, shape: st.style.shape, motion: st.style.motion, density: st.style.density };
   let body: ReactNode = null;
   if (st.kind === "scene") {
     body = <SceneView id={st.id as SceneId} t={t} lang={st.lang} now={now} />;
@@ -247,13 +283,21 @@ export function App() {
 function Site() {
   const [lang, setLang] = useState<Lang>("ja");
   const [mode, toggleMode] = useStoredMode("telop-ui-demo-mode");
-  const [style, setStyle] = useState<Style>({ theme: "broadcast", shape: "slant", motion: "normal", density: "comfortable" });
+  const [style, setStyle] = useState<Style>(styleFromUrl);
   const [route, setRoute] = useState<Route>(() => parseHash(location.hash));
   const controls = useAutoHide();
   const now = useNow(1000);
   const t = T[lang];
   const u = UI[lang];
-  const theme: TelopTheme = presets[style.theme];
+  const theme: TelopTheme = themeOf(style);
+  // keep a custom theme in the URL so the link can be shared
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (style.theme === "custom") { q.set("primary", style.custom.primary.slice(1)); q.set("accent", style.custom.accent.slice(1)); }
+    else { q.delete("primary"); q.delete("accent"); }
+    const search = q.toString();
+    history.replaceState(null, "", `${location.pathname}${search ? `?${search}` : ""}${location.hash}`);
+  }, [style.theme, style.custom.primary, style.custom.accent]);
   const rootProps: RootProps = { theme, mode, locale: lang, shape: style.shape, motion: style.motion, density: style.density };
 
   useEffect(() => {
@@ -316,13 +360,48 @@ function Site() {
 
 type SetStyle = Dispatch<SetStateAction<Style>>;
 
+/** Two color pickers, ready-made pairs, and a warning when the pair would be hard to read. */
+function CustomColors({ style, setStyle, lang }: { style: Style; setStyle: SetStyle; lang: Lang }) {
+  const u = UI[lang];
+  const setColor = (k: "primary" | "accent") => (v: string) => setStyle((prev) => ({ ...prev, custom: { ...prev.custom, [k]: v } }));
+  const issues = checkTheme(themeOf(style));
+  return (
+    <div className="d-custom">
+      <div className="d-pickers">
+        {(["primary", "accent"] as const).map((k) => (
+          <label key={k} className="d-picker-color">
+            <input type="color" value={style.custom[k]} onChange={(e) => setColor(k)(e.target.value)} aria-label={k} />
+            <span><b>{k}</b><code>{style.custom[k]}</code></span>
+          </label>
+        ))}
+      </div>
+      <div className="d-swatches">
+        {SWATCHES.map((sw) => (
+          <button key={sw.name} type="button" title={sw.name} aria-label={sw.name}
+            className={`d-swatch ${sw.primary === style.custom.primary && sw.accent === style.custom.accent ? "is-on" : ""}`}
+            onClick={() => setStyle((prev) => ({ ...prev, custom: { primary: sw.primary, accent: sw.accent } }))}>
+            <span style={{ background: sw.primary }} /><span style={{ background: sw.accent }} />
+          </button>
+        ))}
+      </div>
+      {issues.length > 0
+        ? <p className="d-warn">⚠ {u.lowContrast}: {issues.map((i) => `${i.mode} · ${i.what} ${i.ratio}:1`).join(" / ")}</p>
+        : <p className="d-ok">✓ {u.contrastOk}</p>}
+    </div>
+  );
+}
+
 function StylePanel({ style, setStyle, lang, horizontal = false }: { style: Style; setStyle: SetStyle; lang: Lang; horizontal?: boolean }) {
   const u = UI[lang];
   // updater form: two quick clicks must not overwrite each other with a stale copy
   const set = <K extends keyof Style>(k: K) => (v: Style[K]) => setStyle((prev) => ({ ...prev, [k]: v }));
   return (
     <div className={`d-style ${horizontal ? "is-row" : ""}`}>
-      <Segmented label={u.theme} value={style.theme} options={Object.keys(presets) as Array<keyof typeof presets>} onChange={set("theme")} def="broadcast" defLabel={u.default} />
+      <div className="d-themebox">
+        <Segmented label={u.theme} value={style.theme} options={[...(Object.keys(presets) as Array<keyof typeof presets>), "custom"] as ThemeName[]}
+          onChange={set("theme")} def="broadcast" defLabel={u.default} names={{ custom: u.custom }} />
+        {style.theme === "custom" && <CustomColors style={style} setStyle={setStyle} lang={lang} />}
+      </div>
       <Segmented label={u.shape} value={style.shape} options={["slant", "square", "round"] as const} onChange={set("shape")} names={{ slant: u.slant, square: u.square, round: u.round }} def="slant" defLabel={u.default} />
       <Segmented label={u.motion} value={style.motion} options={["calm", "normal", "snappy"] as const} onChange={set("motion")} names={{ calm: u.calm, normal: u.normal, snappy: u.snappy }} def="normal" defLabel={u.default} />
       <Segmented label={u.density} value={style.density} options={["comfortable", "compact"] as const} onChange={set("density")} names={{ comfortable: u.comfortable, compact: u.compact }} def="comfortable" defLabel={u.default} />
@@ -420,13 +499,14 @@ function EntryView({ entry, lang, mode, style, setStyle }: TabProps & { entry: E
   // When the global style differs from the defaults, show the TelopRoot that produces it,
   // so the snippet reproduces exactly what is on screen.
   const rootAttrs = [
-    style.theme !== "broadcast" ? ` theme={presets.${style.theme}}` : "",
+    style.theme === "custom" ? ` theme={createTheme("my-theme", { primary: "${style.custom.primary}", accent: "${style.custom.accent}" })}`
+      : style.theme !== "broadcast" ? ` theme={presets.${style.theme}}` : "",
     style.shape !== "slant" ? ` shape="${style.shape}"` : "",
     style.motion !== "normal" ? ` motion="${style.motion}"` : "",
     style.density !== "comfortable" ? ` density="${style.density}"` : "",
   ].join("");
   const body = entry.code(ctx);
-  const imports = [...(rootAttrs ? ["TelopRoot", ...(style.theme !== "broadcast" ? ["presets"] : [])] : []), ...names];
+  const imports = [...(rootAttrs ? ["TelopRoot", ...(style.theme === "custom" ? ["createTheme"] : style.theme !== "broadcast" ? ["presets"] : [])] : []), ...names];
   const code = `import { ${imports.join(", ")} } from "telop-ui";\n\n${
     rootAttrs ? `<TelopRoot${rootAttrs}>\n${body.replace(/^/gm, "  ")}\n</TelopRoot>` : body}`;
   const steps = entry.steps;
@@ -522,6 +602,22 @@ const DEMO_CSS = `
 .tu-root .d-seg-opt.is-on { background: var(--tu-primary); color: var(--tu-on-primary); }
 .d-top .d-seg-label { display: none; }
 
+/* custom theme */
+.d-themebox { display: flex; flex-direction: column; gap: 10px; }
+.d-custom { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--d-line); border-radius: var(--tu-radius); max-width: 420px; }
+.d-pickers { display: flex; gap: 10px; flex-wrap: wrap; }
+.d-picker-color { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.d-picker-color input { width: 38px; height: 38px; padding: 0; border: 0; background: none; cursor: pointer; }
+.d-picker-color span { display: flex; flex-direction: column; font-size: 11.5px; line-height: 1.3; }
+.d-picker-color code { font: 600 12px ui-monospace, Menlo, monospace; }
+.d-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.tu-root .d-swatch { display: inline-flex; width: 40px; height: 24px; overflow: hidden; border-radius: var(--tu-radius); box-shadow: 0 0 0 1px var(--d-line); }
+.tu-root .d-swatch span:first-child { flex: 7; }
+.tu-root .d-swatch span:last-child { flex: 3; }
+.tu-root .d-swatch.is-on { box-shadow: 0 0 0 2px var(--tu-fg); }
+.d-warn { margin: 0; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--tu-accent); }
+.d-ok { margin: 0; font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--tu-mute); }
+
 /* buttons */
 .tu-root .d-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-weight: 800; font-size: 13px; text-decoration: none;
   background: var(--tu-panel); box-shadow: inset 0 0 0 1px var(--d-line); border-radius: var(--tu-radius); color: var(--tu-fg); }
@@ -608,7 +704,7 @@ const DEMO_CSS = `
 .d-inspector h4 { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: .06em; color: var(--tu-mute); }
 .d-inspector .d-muted { margin: -8px 0 0; }
 /* equal cells in the inspector: tidy columns instead of ragged wrapping */
-.d-inspector .d-seg-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); align-self: stretch; }
+.d-inspector .d-seg-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); align-self: stretch; }
 .d-inspector .d-seg-opt { text-align: center; }
 
 .d-foot { display: flex; flex-wrap: wrap; gap: 18px; max-width: 1480px; margin: 60px auto 0; padding: 22px 28px 40px; box-shadow: 0 -1px 0 var(--d-line);

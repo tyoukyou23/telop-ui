@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — 2026-10-04
+
+### Added
+- `createTheme` builds a complete theme from **two colors**: tinted surfaces and text, readable
+  text on each fill, and dark-mode brand colors lifted until they read on the dark background.
+  (Before, the dark mode fell back to the default navy and text on fills was always white.)
+- `checkTheme(theme)` lists contrast problems; `createTheme` reports them once in development.
+- Color helpers: `parseColor`, `toHex`, `luminance`, `contrastRatio`, `mix`, `readableOn`, `ensureContrast`.
+- `onAccent` (and the `--tu-on-accent` variable): text on accent fills is no longer hard-coded white.
+
+### Changed
+- Presets pass their own check now: `variety` accent `#e85a00` (was `#ff6a00`), `ceremony` accent
+  `#a97b25` (was `#b8862b`), dark text on the bright accents of `variety` and `ceremony` dark.
+
+### Demo
+- Theme → Custom: two color pickers, six ready pairs, a live contrast check, the matching
+  `createTheme` code, and colors kept in the link.
+
 ## 0.2.1 — 2026-10-04
 
 ### Fixed

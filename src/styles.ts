@@ -18,6 +18,7 @@ export const CSS = String.raw`
   --tu-skew: -12deg; --tu-unskew: 12deg; --tu-radius: 0px; --tu-cut: 1.4vw;
   --tu-speed: 1;
   --tu-density: 1;
+  --tu-on-accent: #fff; --tu-on-brand-primary: #fff; --tu-on-brand-accent: #fff;
   position: relative; min-height: 100vh; width: 100%; overflow: hidden; user-select: none;
   background: var(--tu-bg); color: var(--tu-fg);
   font-family: var(--tu-font, "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif);
@@ -65,13 +66,13 @@ export const CSS = String.raw`
 .tu-telop.is-trail { margin-left: -.3vw; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; }
 .tu-telop.is-start { align-self: flex-start; }
 .tu-fill-primary { background: var(--tu-primary); color: var(--tu-on-primary); }
-.tu-fill-accent { background: var(--tu-accent); color: #fff; }
+.tu-fill-accent { background: var(--tu-accent); color: var(--tu-on-accent); }
 .tu-fill-outline { background: var(--tu-panel); color: var(--tu-fg); box-shadow: inset 0 0 0 3px var(--tu-primary); }
 
 .tu-tag { display: inline-block; flex-shrink: 0; font-weight: 900; font-size: min(.75vw, 1.25vh); padding: .1vh .45vw;
   box-shadow: inset 0 0 0 1.5px var(--tu-primary); color: var(--tu-primary); vertical-align: middle; white-space: nowrap; }
 .tu-tag.is-accent { box-shadow: inset 0 0 0 1.5px var(--tu-accent); color: var(--tu-accent); }
-.tu-pill { display: inline-block; flex-shrink: 0; background: var(--tu-accent); color: #fff; font-weight: 900;
+.tu-pill { display: inline-block; flex-shrink: 0; background: var(--tu-accent); color: var(--tu-on-accent); font-weight: 900;
   font-size: min(.8vw, 1.35vh); padding: .2vh .5vw; white-space: nowrap; }
 .tu-dot { display: inline-block; flex-shrink: 0; border-radius: 999px; width: min(.8vw, 1.3vh); height: min(.8vw, 1.3vh); background: var(--tu-accent); }
 .tu-dot.is-off { background: var(--tu-mute); }
@@ -178,10 +179,10 @@ export const CSS = String.raw`
 .tu-status { display: flex; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; gap: 2vh; padding: 0 8vw; text-align: center; }
 
 .tu-lband { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; height: 7vh; font-size: min(1.5vw, 2.6vh); font-weight: 700; }
-.tu-lband-tag { display: flex; align-items: center; padding: 0 2.2vw 0 4.5vw; background: var(--tu-brand-accent); color: #fff;
+.tu-lband-tag { display: flex; align-items: center; padding: 0 2.2vw 0 4.5vw; background: var(--tu-brand-accent); color: var(--tu-on-brand-accent);
   font-family: var(--tu-num-font); font-style: italic; font-weight: 800; letter-spacing: .12em; font-size: 1.25em; }
 .tu-lband-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2.4vw; padding: 0 4.5vw 0 2vw;
-  background: var(--tu-brand-primary); color: #fff; overflow: hidden; }
+  background: var(--tu-brand-primary); color: var(--tu-on-brand-primary); overflow: hidden; }
 .tu-lband-item { white-space: nowrap; display: inline-flex; align-items: baseline; gap: .4vw; }
 .tu-lband-item.is-truncate { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
 /* marquee inside the L-band (lobby signage) */
@@ -194,7 +195,7 @@ export const CSS = String.raw`
 .tu-qbox { background: var(--tu-primary); color: var(--tu-on-primary); padding: 2.4vh 2.2vw; border-left: 1.2vw solid var(--tu-accent); }
 .tu-qbox-sub { margin-top: 1vh; font-size: min(2vw, 3.3vh); font-weight: 700; opacity: .75; line-height: 1.4; }
 .tu-lower { display: flex; align-items: stretch; }
-.tu-lower-label { flex-shrink: 0; display: flex; align-items: center; background: var(--tu-accent); color: #fff; padding: 0 1.4vw;
+.tu-lower-label { flex-shrink: 0; display: flex; align-items: center; background: var(--tu-accent); color: var(--tu-on-accent); padding: 0 1.4vw;
   font-weight: 900; font-size: min(1.7vw, 2.8vh); }
 .tu-lower-body { flex: 1; background: var(--tu-panel); padding: 1.8vh 1.8vw; box-shadow: inset 0 -.5vh 0 var(--tu-primary); }
 .tu-title-card { display: flex; flex-direction: column; justify-content: center; height: 100%; }
@@ -257,7 +258,7 @@ export const CSS = String.raw`
 .tu-stack { display: flex; height: min(3vw, 5vh); transform: skewX(var(--tu-skew)); overflow: hidden; background: var(--tu-track); }
 .tu-stack-part { height: 100%; min-width: 0; flex-basis: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;
   transition: flex-grow calc(.9s * var(--tu-speed, 1)) var(--tu-ease-spring); }
-.tu-stack-part > span { transform: skewX(var(--tu-unskew)); color: #fff; font-weight: 900; font-size: min(1.1vw, 1.9vh); white-space: nowrap; }
+.tu-stack-part > span { transform: skewX(var(--tu-unskew)); color: var(--tu-on-primary); font-weight: 900; font-size: min(1.1vw, 1.9vh); white-space: nowrap; }
 .tu-legend { display: flex; flex-wrap: wrap; gap: .8vh 1.6vw; margin-top: 1.6vh; }
 .tu-legend-item { display: inline-flex; align-items: center; gap: .5vw; font-weight: 700; font-size: min(1.05vw, 1.8vh); }
 .tu-legend-swatch { width: min(1vw, 1.7vh); height: min(1vw, 1.7vh); transform: skewX(var(--tu-skew)); }
@@ -285,7 +286,7 @@ export const CSS = String.raw`
   background: var(--tu-panel); box-shadow: inset 0 0 0 3px var(--tu-track); font-weight: 900; font-size: min(2.2vw, 3.7vh); text-align: center;
   transition: background calc(.08s * var(--tu-speed, 1)), color calc(.08s * var(--tu-speed, 1)), opacity calc(.5s * var(--tu-speed, 1)), box-shadow calc(.08s * var(--tu-speed, 1)); }
 .tu-drum-item.is-lit { background: var(--tu-primary); color: var(--tu-on-primary); box-shadow: none; }
-.tu-drum-item.is-hit { background: var(--tu-accent); color: #fff; box-shadow: none; }
+.tu-drum-item.is-hit { background: var(--tu-accent); color: var(--tu-on-accent); box-shadow: none; }
 .tu-drum-item.is-dim { opacity: .3; }
 .tu-drum-item .tu-stamp { left: auto; right: -1vw; top: 0; }
 
@@ -293,13 +294,13 @@ export const CSS = String.raw`
 .tu-tickers { position: absolute; right: 0; z-index: 20; display: flex; flex-direction: column; align-items: flex-end; gap: 1vh; pointer-events: none; }
 @keyframes tu-ticker { 0% { transform: translateX(120%) } 14% { transform: translateX(0) } 82% { transform: translateX(0) } 100% { transform: translateX(120%) } }
 .tu-ticker { display: flex; animation: tu-ticker 2.6s cubic-bezier(.7,0,.2,1) both; font-weight: 900; font-size: min(1.6vw, 2.7vh); }
-.tu-ticker-label { background: var(--tu-accent); color: #fff; padding: 1vh 1.2vw; }
+.tu-ticker-label { background: var(--tu-accent); color: var(--tu-on-accent); padding: 1vh 1.2vw; }
 .tu-ticker-text { background: var(--tu-panel); padding: 1vh 4.5vw 1vh 1.6vw; box-shadow: inset 0 -.4vh 0 var(--tu-primary); }
 
 .tu-banner-wrap { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; pointer-events: none; }
 @keyframes tu-banner { 0% { clip-path: inset(0 100% 0 0) } 18% { clip-path: inset(0 0 0 0) } 82% { clip-path: inset(0 0 0 0) } 100% { clip-path: inset(0 0 0 100%) } }
 .tu-banner { width: 100%; animation: tu-banner calc(3.4s * var(--tu-speed, 1)) cubic-bezier(.7,0,.2,1) both; }
-.tu-banner-main { background: var(--tu-brand-primary); padding: 4vh 0; text-align: center; color: #fff; font-weight: 900; font-size: 7vw; letter-spacing: .08em; }
+.tu-banner-main { background: var(--tu-brand-primary); padding: 4vh 0; text-align: center; color: var(--tu-on-brand-primary); font-weight: 900; font-size: 7vw; letter-spacing: .08em; }
 .tu-banner-edge { background: var(--tu-brand-accent); height: 1.4vh; }
 
 /* end credits. Travel = screen height + list height; translateY(100%) alone is the LIST's
@@ -407,7 +408,7 @@ export const CSS = String.raw`
 .tu-bug-team { flex: 1; padding: .5em .8em; font-weight: 900; white-space: nowrap; }
 .tu-bug-score { display: flex; align-items: center; justify-content: center; min-width: 2.6em; padding: 0 .4em;
   font-family: var(--tu-num-font); font-style: italic; font-weight: 800; font-size: 1.45em; color: var(--tu-fg); }
-@keyframes tu-bug-flash { 0%, 40% { background: var(--tu-accent); color: #fff } 100% { background: transparent } }
+@keyframes tu-bug-flash { 0%, 40% { background: var(--tu-accent); color: var(--tu-on-accent) } 100% { background: transparent } }
 .tu-bug-score.is-flash { animation: tu-bug-flash calc(1.2s * var(--tu-speed, 1)) ease-out; }
 .tu-bug-period { padding: .35em .8em; text-align: center; font-weight: 700; font-size: .8em; color: var(--tu-mute);
   box-shadow: inset 0 1px 0 var(--tu-track); }
@@ -420,7 +421,7 @@ export const CSS = String.raw`
   transform: skewX(var(--tu-skew)); background: var(--tu-track); color: var(--tu-mute);
   font-family: var(--tu-num-font); font-style: italic; font-weight: 800; font-size: 1.1em; }
 .tu-rr-row.is-on .tu-rr-rank { background: var(--tu-primary); color: var(--tu-on-primary); }
-.tu-rr-row.is-latest .tu-rr-rank { background: var(--tu-accent); color: #fff; }
+.tu-rr-row.is-latest .tu-rr-rank { background: var(--tu-accent); color: var(--tu-on-accent); }
 .tu-rr-body { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 1.4vw; padding: .3em 0; font-weight: 900;
   box-shadow: inset 0 -2px 0 var(--tu-track); }
 .tu-rr-body.is-wait { color: var(--tu-mute); font-weight: 700; }
@@ -430,11 +431,11 @@ export const CSS = String.raw`
 
 /* NewsFlash: drops in from the top edge, over the brand band */
 .tu-flash { position: fixed; top: 0; left: 0; right: 0; z-index: 55; display: flex; align-items: stretch;
-  font-size: min(2.2vw, 3.7vh); font-weight: 900; color: #fff; animation: tu-flash-in calc(.5s * var(--tu-speed, 1)) var(--tu-ease-out) both; }
+  font-size: min(2.2vw, 3.7vh); font-weight: 900; color: var(--tu-on-brand-primary); animation: tu-flash-in calc(.5s * var(--tu-speed, 1)) var(--tu-ease-out) both; }
 .tu-flash.is-leaving { animation: tu-flash-out calc(.45s * var(--tu-speed, 1)) var(--tu-ease-wipe) both; }
 @keyframes tu-flash-in { from { transform: translateY(-110%) } to { transform: none } }
 @keyframes tu-flash-out { from { transform: none } to { transform: translateY(-110%) } }
-.tu-flash-label { flex-shrink: 0; display: flex; align-items: center; padding: .55em 1.2em; background: var(--tu-brand-accent); letter-spacing: .12em; }
+.tu-flash-label { flex-shrink: 0; display: flex; align-items: center; padding: .55em 1.2em; background: var(--tu-brand-accent); color: var(--tu-on-brand-accent); letter-spacing: .12em; }
 .tu-flash-text { flex: 1; min-width: 0; display: flex; align-items: center; padding: .55em 1.2em; background: var(--tu-brand-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -486,7 +487,7 @@ export const CSS = String.raw`
 .tu-podium-col.is-p2 .tu-podium-block { height: 52%; }
 .tu-podium-col.is-p3 .tu-podium-block { height: 38%; }
 .tu-podium-col.is-on .tu-podium-block { background: var(--tu-primary); color: var(--tu-on-primary); }
-.tu-podium-col.is-latest .tu-podium-block { background: var(--tu-accent); color: #fff; }
+.tu-podium-col.is-latest .tu-podium-block { background: var(--tu-accent); color: var(--tu-on-accent); }
 .tu-podium-col.is-latest .tu-podium-label { color: var(--tu-accent); }
 @keyframes tu-podium-up { from { transform: scaleY(.15) } to { transform: scaleY(1) } }
 .tu-podium-col.is-on .tu-podium-block { animation: tu-podium-up calc(.6s * var(--tu-speed, 1)) var(--tu-ease-spring) both; }
@@ -497,7 +498,7 @@ export const CSS = String.raw`
 .tu-flash.is-bottom.is-leaving { animation-name: tu-flash-down; }
 @keyframes tu-flash-up { from { transform: translateY(110%) } to { transform: none } }
 @keyframes tu-flash-down { from { transform: none } to { transform: translateY(110%) } }
-.tu-flash.is-alert .tu-flash-text { background: var(--tu-brand-accent); }
+.tu-flash.is-alert .tu-flash-text { background: var(--tu-brand-accent); color: var(--tu-on-brand-accent); }
 .tu-flash.is-alert .tu-flash-label { background: #fff; color: var(--tu-brand-accent); animation: tu-live 1s ease-in-out infinite; }
 
 

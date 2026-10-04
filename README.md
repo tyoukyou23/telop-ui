@@ -46,18 +46,32 @@ export function Submissions({ done, total }: { done: number; total: number }) {
 ## Themes
 
 Three presets: `broadcast` (navy + red), `variety` (ink + orange) and `ceremony` (green + gold).
-Make your own from two brand colors:
+For your own, two brand colors are enough:
 
 ```tsx
 import { createTheme, TelopRoot } from "telop-ui";
 
-const school = createTheme("school", { primary: "#25408e", accent: "#d2232a" }, { primary: "#8ea6ec", accent: "#ff5157" });
+const school = createTheme("school", { primary: "#1d6b46", accent: "#b07f00" });
 
 <TelopRoot theme={school} mode="dark">…</TelopRoot>
 ```
 
-Every color is a CSS variable (`--tu-bg`, `--tu-fg`, `--tu-primary`, `--tu-accent`, `--tu-panel`, `--tu-mute`, `--tu-track` …),
-so you can also override them in plain CSS.
+`createTheme` derives everything else for **both** modes:
+
+- tinted background, panel, text and muted text from `primary`
+- text on each fill — white while it reads (3:1 for bold captions), dark otherwise
+- dark-mode versions of your colors, lifted until they read on the dark background
+
+Any field can still be set by hand (`bg`, `fg`, `panel`, `onPrimary`, `onAccent`, `mute`, `track`),
+and a third argument overrides dark-mode fields.
+
+**Contrast check.** In development, a theme that would be hard to read on a projector is reported once in
+the console. `checkTheme(theme)` returns the same list, and `contrastRatio`, `readableOn`, `mix` and
+`ensureContrast` are exported if you build colors yourself. Try colors in the [demo](https://tyoukyou23.github.io/telop-ui/)
+(Theme → Custom): it shows the warnings and the `createTheme` call, and the link keeps your colors.
+
+Every color is also a CSS variable (`--tu-bg`, `--tu-fg`, `--tu-primary`, `--tu-accent`, `--tu-on-accent`, `--tu-panel`,
+`--tu-mute`, `--tu-track` …), so you can override them in plain CSS.
 
 **Use `accent` sparingly.** It is for the one thing people must look at: the hardest question, the winner, the
 last ten seconds. If everything is red, nothing is.
