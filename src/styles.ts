@@ -328,13 +328,15 @@ export const CSS = String.raw`
 /* ── slides ───────────────────────────────────────────────────────── */
 /* overflow hidden: the curtain stops just outside the right edge (translateX(101%));
    without clipping it lingers in the margin as a solid bar. */
-.tu-deck { position: relative; height: 100%; width: 100%; overflow: hidden; }
+/* overflow is hidden for the curtain; the 2vw of extra room on each side keeps the slanted
+   corners of telops at the content edge from being cut off */
+.tu-deck { position: relative; height: 100%; width: calc(100% + 4vw); margin: 0 -2vw; padding: 0 2vw; overflow: hidden; }
 .tu-deck-slide { height: 100%; width: 100%; }
 @keyframes tu-curtain { 0% { transform: translateX(-101%) } 45%, 55% { transform: translateX(0) } 100% { transform: translateX(101%) } }
 .tu-curtain { position: absolute; inset: 0; z-index: 45; display: flex; pointer-events: none; animation: tu-curtain calc(.8s * var(--tu-speed, 1)) var(--tu-ease-wipe) both; }
 .tu-curtain > :first-child { flex: 1; background: var(--tu-brand-primary); }
 .tu-curtain > :last-child { width: 1.4vw; background: var(--tu-brand-accent); }
-.tu-deck-progress { position: absolute; right: 0; bottom: 0; z-index: 30; display: flex; gap: .4vw; align-items: center; }
+.tu-deck-progress { position: absolute; right: 2vw; bottom: 0; z-index: 30; display: flex; gap: .4vw; align-items: center; }
 .tu-deck-seg { position: relative; width: min(2.6vw, 4.4vh); height: min(.45vw, .75vh); background: var(--tu-track); overflow: hidden; transform: skewX(var(--tu-skew)); }
 .tu-deck-seg.is-done { background: var(--tu-primary); }
 @keyframes tu-deck-fill { from { width: 0 } to { width: 100% } }

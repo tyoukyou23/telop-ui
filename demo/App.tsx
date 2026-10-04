@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import {
   TelopRoot, CtrlButton,
   presets, useStoredMode, useAutoHide, useNow, useHotkeys, toggleFullscreen,
@@ -18,7 +18,7 @@ import { ENTRIES, GROUPS, defaultsOf, ENTRY, type Entry, type Props, type Value 
  *                (this component's parameters, then the global style).
  */
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 /** Components added in this version (marked NEW in the nav). */
 const NEW_IDS = new Set(["mekuri", "judges", "versus", "scorebug", "rankreveal", "flash"]);
 
@@ -200,6 +200,14 @@ function useNarrow(): boolean {
   return narrow;
 }
 
+function ExpandIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true">
+      <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
+    </svg>
+  );
+}
+
 /** Very small JSX highlighter: tags, attribute names, strings, braces, comments. */
 function Highlight({ code }: { code: string }) {
   const out: ReactNode[] = [];
@@ -254,6 +262,8 @@ function Site() {
     return () => removeEventListener("hashchange", f);
   }, []);
   useHotkeys({ f: toggleFullscreen, Escape: () => { if (route.tab === "scene") history.back(); } });
+  // scrollbars and native controls (the phone select) follow the light / dark switch
+  useEffect(() => { document.documentElement.style.colorScheme = mode; }, [mode]);
 
   if (route.tab === "scene" && SCENES.includes(route.id)) {
     return (
@@ -304,9 +314,12 @@ function Site() {
   );
 }
 
-function StylePanel({ style, setStyle, lang, horizontal = false }: { style: Style; setStyle: (s: Style) => void; lang: Lang; horizontal?: boolean }) {
+type SetStyle = Dispatch<SetStateAction<Style>>;
+
+function StylePanel({ style, setStyle, lang, horizontal = false }: { style: Style; setStyle: SetStyle; lang: Lang; horizontal?: boolean }) {
   const u = UI[lang];
-  const set = <K extends keyof Style>(k: K) => (v: Style[K]) => setStyle({ ...style, [k]: v });
+  // updater form: two quick clicks must not overwrite each other with a stale copy
+  const set = <K extends keyof Style>(k: K) => (v: Style[K]) => setStyle((prev) => ({ ...prev, [k]: v }));
   return (
     <div className={`d-style ${horizontal ? "is-row" : ""}`}>
       <Segmented label={u.theme} value={style.theme} options={Object.keys(presets) as Array<keyof typeof presets>} onChange={set("theme")} def="broadcast" defLabel={u.default} />
@@ -317,7 +330,7 @@ function StylePanel({ style, setStyle, lang, horizontal = false }: { style: Styl
   );
 }
 
-interface TabProps { lang: Lang; mode: "light" | "dark"; style: Style; setStyle: (s: Style) => void }
+interface TabProps { lang: Lang; mode: "light" | "dark"; style: Style; setStyle: SetStyle }
 
 function ScenesTab({ lang, mode, style, setStyle }: TabProps) {
   const u = UI[lang];
@@ -438,11 +451,11 @@ function EntryView({ entry, lang, mode, style, setStyle }: TabProps & { entry: E
                   : <b>{step} / {steps}</b>}
               </div>
               <button type="button" className="d-btn is-main" onClick={() => setStep((s) => Math.min(s + 1, steps))} disabled={step >= steps}>{u.next} ▶</button>
-              <a className="d-btn" href={embedHref} target="_blank" rel="noreferrer" title={u.fullscreen} aria-label={u.fullscreen}>⤢</a>
+              <a className="d-btn" href={embedHref} target="_blank" rel="noreferrer" title={u.fullscreen} aria-label={u.fullscreen}><ExpandIcon /></a>
             </div>
           )}
           {steps == null && (
-            <div className="d-player"><span className="d-flex" /><a className="d-btn" href={embedHref} target="_blank" rel="noreferrer" title={u.fullscreen} aria-label={u.fullscreen}>⤢ {u.fullscreen}</a></div>
+            <div className="d-player"><span className="d-flex" /><a className="d-btn" href={embedHref} target="_blank" rel="noreferrer" title={u.fullscreen} aria-label={u.fullscreen}><ExpandIcon /> {u.fullscreen}</a></div>
           )}
         </div>
 
@@ -551,6 +564,7 @@ const DEMO_CSS = `
 .d-inspector { grid-area: insp; }
 .d-codewrap { grid-area: code; min-width: 0; }
 .d-picker { display: none; }
+.d-nav, .d-inspector { scrollbar-width: thin; scrollbar-color: var(--d-line) transparent; }
 .d-nav { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow: auto; padding-bottom: 20px; }
 .d-nav-group + .d-nav-group { margin-top: 20px; }
 .d-nav-title { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; font-weight: 900; color: var(--tu-mute); letter-spacing: .06em; margin-bottom: 6px; }

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Stage, StageHeader, LBand, LBandItem, Marquee, Split,
-  Telop, Text, HeadlineBox, LowerThird, PersonLowerThird, TitleCard,
+  Telop, Text, HeadlineBox, LowerThird, PersonLowerThird, TitleCard, Typewriter,
   BigNumber, StatBlock, SegBar, Countdown, DigitRoller, SplitFlap,
   RankingList, StackedBar, ChoiceBars, RankingRace,
   TickerStack, SweepBanner, Reveal, CreditsRoll, SlideDeck,
@@ -72,6 +72,8 @@ function QuizScene({ t, clock }: { t: typeof T.ja; clock: string }) {
           </div>
         ) : (
           <>
+            {/* while submissions come in, the numbers sit in the middle of the screen; the ranking pushes them up */}
+            <div style={{ marginBlock: phase === "rank" ? undefined : "auto" }}>
             <Split divider ratio="1.4fr 1fr" left={
               <div><Telop size="md" className="tu-wipe">{t.submitted}</Telop>
                 <div style={{ marginTop: "2vh", display: "flex", alignItems: "flex-end", gap: "1.2vw" }}>
@@ -85,6 +87,7 @@ function QuizScene({ t, clock }: { t: typeof T.ja; clock: string }) {
               </div>
             } />
             <div style={{ marginTop: "3.4vh" }}><SegBar total={TOTAL} filled={submitted} tall /></div>
+            </div>
             {phase === "rank" && (
               <div style={{ marginTop: "3vh", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
                 <Telop tone="accent" size="sm" className="tu-wipe is-start">{t.worst}</Telop>
@@ -172,7 +175,11 @@ function CeremonyScene({ t, lang }: { t: typeof T.ja; lang: Lang }) {
             <div style={{ marginTop: "5vh" }}><StackedBar parts={[{ key: "u", label: t.courses[0], value: 74 }, { key: "g", label: t.courses[1], value: 31 }, { key: "v", label: t.courses[2], value: 23 }]} highlight="u" /></div>
           </div>) },
         { key: "speaker", node: (
-          <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%", paddingBottom: "6vh" }}>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: "8vh 0 6vh" }}>
+            <div>
+              <Telop size="md" tone="accent" className="tu-wipe">{t.speechKicker}</Telop>
+              <div className="tu-t-display" style={{ marginTop: "3vh", maxWidth: "70vw" }}><Typewriter text={t.speechQuote} speed={90} /></div>
+            </div>
             <PersonLowerThird name={t.speaker} sub={t.speakerSub || undefined} role={t.speakerRole} />
           </div>) },
         { key: "credits", node: <CreditsRoll items={credits} seconds={16} />, seconds: 14 },
@@ -194,7 +201,7 @@ function CountdownScene({ t, now }: { t: typeof T.ja; now: number }) {
       <Stage header={<StageHeader logo={LOGO} title={t.countdownTitle} clock={formatClock(now)} />}>
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", flex: 1, gap: "3vh" }}>
           <Telop size="lg">{t.countdownSub}</Telop>
-          <Countdown target={target} now={now} size="hero" />
+          <Countdown target={target} now={now} variant="ring" total={16} ringSize="min(34vw, 56vh)" />
         </div>
       </Stage>
       {banner && <SweepBanner text={t.countdownTitle} onDone={() => setBanner(false)} />}

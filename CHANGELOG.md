@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1 — 2026-10-04
+
+### Fixed
+- `SplitFlap`: one cell width per row. Padding cells next to kanji were narrow, so the rows of a
+  board ended at different places, and cells changed width while shuffling. New `wide` prop
+  to force it either way.
+- `SlideDeck`: the slanted corner of a telop at the left edge of a slide was cut off.
+
+### Demo
+- Previews and scene thumbnails are iframes with a fixed 16:9 viewport, so phones and odd
+  window shapes show the real projector layout. Phone layout; a full-screen button per preview.
+- The countdown scene uses the ring; the ceremony's speaker slide has a typed quote.
+
 ## 0.2.0 — 2026-10-04
 
 ### Added

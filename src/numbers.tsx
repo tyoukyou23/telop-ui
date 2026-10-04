@@ -252,7 +252,7 @@ export function DigitRoller({ value, minDigits = 1, size = "xl", tone = "primary
 const DEFAULT_FLAP_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /** One flap: shuffles through random characters, then lands on `char`. */
-function Flap({ char, delay, cycles, chars, flipMs }: { char: string; delay: number; cycles: number; chars: string; flipMs: number }) {
+function Flap({ char, delay, cycles, chars, flipMs, wide }: { char: string; delay: number; cycles: number; chars: string; flipMs: number; wide: boolean }) {
   const [shown, setShown] = useState(char);
   const [tick, setTick] = useState(0);
   const first = useRef(true);
@@ -270,7 +270,6 @@ function Flap({ char, delay, cycles, chars, flipMs }: { char: string; delay: num
     id = setTimeout(step, delay);
     return () => clearTimeout(id);
   }, [char, delay, cycles, chars, flipMs]);
-  const wide = /[^\x00-\xff]/.test(shown);
   return (
     <span className={`tu-flap ${wide ? "is-wide" : ""}`}>
       <span key={tick} className="tu-flap-char" style={{ ["--tu-flap-ms" as string]: `${flipMs}ms` }}>{shown === " " ? " " : shown}</span>
@@ -289,6 +288,12 @@ export interface SplitFlapProps {
   cycles?: number;
   /** One flip (ms). Default 70. */
   flipMs?: number;
+  /**
+   * Wide cells (for kanji / kana). Default: wide when the text or the flip characters
+   * contain any full-width character. The whole row shares one width, so rows of a board
+   * line up and cells do not change size while they shuffle.
+   */
+  wide?: boolean;
   className?: string;
 }
 
@@ -296,12 +301,13 @@ export interface SplitFlapProps {
  * Split-flap board (the station departure board). When `text` changes each cell shuffles
  * and lands, left to right. For room numbers, times, short headings — not paragraphs.
  */
-export function SplitFlap({ text, length, size = "min(4vw, 6.6vh)", chars = DEFAULT_FLAP_CHARS, cycles = 6, flipMs = 70, className = "" }: SplitFlapProps) {
+export function SplitFlap({ text, length, size = "min(4vw, 6.6vh)", chars = DEFAULT_FLAP_CHARS, cycles = 6, flipMs = 70, wide, className = "" }: SplitFlapProps) {
+  const isWide = wide ?? /[^\x00-\xff]/.test(text + chars);
   let cells = Array.from(text);
   if (length != null) cells = cells.slice(0, length).concat(Array(Math.max(0, length - cells.length)).fill(" "));
   return (
     <span className={`tu-flap-row ${className}`} style={{ fontSize: size }} aria-label={text}>
-      {cells.map((c, i) => <Flap key={i} char={c} delay={i * 45} cycles={cycles} chars={chars} flipMs={flipMs} />)}
+      {cells.map((c, i) => <Flap key={i} char={c} delay={i * 45} cycles={cycles} chars={chars} flipMs={flipMs} wide={isWide} />)}
     </span>
   );
 }
